@@ -4,7 +4,8 @@ import pathlib
 import re
 import shutil
 import sys
-from typing import List
+from time import sleep
+from typing import List, Optional
 
 """
 The purpose of this script is to copy matching files from a source directory
@@ -29,20 +30,10 @@ is organized according to these conventions. MediaTest uses pytest to enforce
 rules such as "all album folders must contain the year in brackets".
 """
 
-parser = argparse.ArgumentParser(
-    prog="KaraCopy", description="Copies music and LRC files", epilog=""
-)
-
-SOURCE_FOLDER = "D:\\Music"
-DEST_FOLDER = "D:\\Playlists\\1980s"
 
 EXTS_MEDIA = ["mp3", "m4a"]
 EXTS_ART = ["jpg"]
 EXTS_LYRICS = ["lrc"]
-ALLOWED_EXTS = EXTS_MEDIA + EXTS_ART + EXTS_LYRICS
-
-MIN_YEAR = '1980'
-MAX_YEAR = '1989'
 
 
 def query_yes_no(question, default="yes") -> bool:
@@ -98,7 +89,9 @@ def sizeof_fmt(num, suffix="B") -> None:
     return f"{num:.1f} Yi{suffix}"
 
 
-def process_album_dir(album_path: str, min_year: str, max_year: str) -> List[str]:
+def process_album_dir(
+    album_path: str, min_year: Optional[int], max_year: Optional[int]
+) -> List[str]:
     """Returns a list of absolute file paths to files which should be copied,
     including .mp3/.m4a, .lrc and .jpg (cover art) files."""
     ret = []
@@ -114,8 +107,8 @@ def process_album_dir(album_path: str, min_year: str, max_year: str) -> List[str
         print(e)
         sys.exit(1)
 
-    if (min_year == "any" or album_year >= int(min_year)) and (
-        max_year == "any" or album_year <= int(max_year)
+    if (min_year is None or album_year >= int(min_year)) and (
+        max_year is None or album_year <= int(max_year)
     ):
         for root, _, files in os.walk(album_path):
             for f in files:
@@ -165,7 +158,9 @@ def copy_file(source_dir: str, dest_dir: str, source_file_abspath: str) -> None:
     shutil.copy(source_file_abspath, dest_file_abspath)
 
 
-def walk_media_dir(media_path: str, min_year: str, max_year: str) -> List[str]:
+def walk_media_dir(
+    media_path: str, min_year: Optional[int], max_year: Optional[int]
+) -> List[str]:
     files = []
     base_depth = get_path_depth(media_path)
     for root, dirs, _ in os.walk(media_path, topdown=False):
@@ -198,35 +193,61 @@ def show_copy_stats(files: List[str]) -> None:
     )
 
 
-def show_copy_proceed_menu(files: List[str], dest_folder: str) -> bool:
+def show_copy_proceed_menu(files: List[str], dest_dir: str) -> bool:
     if not query_yes_no("Proceed with copy?"):
         print("Copy aborted")
         return False
     print("Proceeding with copy")
-    if os.path.exists(dest_folder):
+    if os.path.exists(dest_dir):
         if not query_yes_no(
             "Destination folder exists, are you sure you wish to overwrite it (all contents will be lost)?"
         ):
             print("Copy aborted")
             return False
         else:
-            shutil.rmtree(dest_folder)
-            os.mkdir(dest_folder)
+            shutil.rmtree(dest_dir)
+            sleep(1)  # attempt to avoid permission denied isssue
+            os.mkdir(dest_dir)
             print("Existing folder deleted successfully. Proceeding with copy")
     return True
 
 
 def copy_files(files: List[str], source_dir: str, dest_dir: str) -> None:
-    for f in files:
+    for i, f in enumerate(files):
+        print(f"Copying file {i+1} of {len(files)}: {f}")
         copy_file(source_dir, dest_dir, f)
     print(f"Copied {len(files)} files")
 
 
 def main():
-    files = walk_media_dir(SOURCE_FOLDER, MIN_YEAR, MAX_YEAR)
+    parser = argparse.ArgumentParser(
+        prog="karacopy", description="Copies music and LRC files", epilog=""
+    )
+
+    parser.add_argument(
+        "source_dir", help="path to media library to copy from", type=str
+    )
+
+    parser.add_argument("dest_dir", help="path to media library to copy from", type=str)
+
+    parser.add_argument(
+        "--min-year",
+        type=int,
+        help="filter by minimum album year",
+    )
+
+    parser.add_argument(
+        "--max-year",
+        type=int,
+        help="filter by maximum album year",
+    )
+
+    args = parser.parse_args()
+
+    files = walk_media_dir(args.source_dir, args.min_year, args.max_year)
     show_copy_stats(files)
-    if show_copy_proceed_menu(files, DEST_FOLDER):
-        copy_files(files, SOURCE_FOLDER, DEST_FOLDER)
+    if show_copy_proceed_menu(files, args.dest_dir):
+        copy_files(files, args.source_dir, args.dest_dir)
 
 
 if __name__ == "__main__":

@@ -17,6 +17,12 @@ does not copy media if it doesn't find a matching .lrc file.
 Additionally you may want to filter based on criteria such as year or genre.
 Rather than use ID3 tags, this scripts expects your album folders are labeled
 such that the year is in square brackets.
-You can use another script of mine (MediaTest) to ensure that your media library
-is organized according to these conventions. MediaTest uses pytest to enforce 
+You can use another script of mine (mediatest) to ensure that your media library
+is organized according to these conventions. mediatest uses pytest to enforce 
 rules such as "all album folders must contain the year in brackets".
+
+## Usage
+
+```bash
+python karacopy.py D:\Music\ D:\Playlists\1980s --min-year 1980 --max-year 1989
+```
