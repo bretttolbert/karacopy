@@ -26,3 +26,24 @@ rules such as "all album folders must contain the year in brackets".
 ```bash
 python karacopy.py D:\Music\ D:\Playlists\1980s --min-year 1980 --max-year 1989
 ```
+
+```
+Files to be copied:
+D:\Music\'Til Tuesday\Voices Carry [1985]\cover.jpg
+D:\Music\'Til Tuesday\Voices Carry [1985]\Voices Carry.lrc
+D:\Music\'Til Tuesday\Voices Carry [1985]\Voices Carry.mp3
+...
+Total number of files to be copied (including media/lyrics/art): 2668
+Total number of media files to be copied: 1008
+Total filesize to be copied: 7956858469 bytes (7.4 GiB)
+Proceed with copy? [Y/n] Y
+Proceeding with copy
+Destination folder exists, are you sure you wish to overwrite it (all contents will be lost)? [Y/n] Y
+Existing folder deleted successfully. Proceeding with copy
+Copying file 1 of 2668: D:\Music\'Til Tuesday\Voices Carry [1985]\cover.jpg
+Copying file 2 of 2668: D:\Music\'Til Tuesday\Voices Carry [1985]\Voices Carry.lrc
+Copying file 3 of 2668: D:\Music\'Til Tuesday\Voices Carry [1985]\Voices Carry.mp3
+...
+Copying file 2668 of 2668: D:\Music\Ángeles del Infierno\Pacto con el Diablo [1984]\cover.jpg
+Copied 2668 files
+```
