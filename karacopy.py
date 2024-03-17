@@ -30,22 +30,22 @@ rules such as "all album folders must contain the year in brackets".
 """
 
 parser = argparse.ArgumentParser(
-                    prog='KaraCopy',
-                    description='Copies music and LRC files',
-                    epilog='')
+    prog="KaraCopy", description="Copies music and LRC files", epilog=""
+)
 
-SOURCE_FOLDER="D:\\Music"
-DEST_FOLDER="D:\\Playlists\\1980s"
+SOURCE_FOLDER = "D:\\Music"
+DEST_FOLDER = "D:\\Playlists\\1980s"
 
 EXTS_MEDIA = ["mp3", "m4a"]
 EXTS_ART = ["jpg"]
 EXTS_LYRICS = ["lrc"]
 ALLOWED_EXTS = EXTS_MEDIA + EXTS_ART + EXTS_LYRICS
 
-MIN_YEAR = 1980
-MAX_YEAR = 1989
+MIN_YEAR = '1980'
+MAX_YEAR = '1989'
 
-def query_yes_no(question, default="yes"):
+
+def query_yes_no(question, default="yes") -> bool:
     """Ask a yes/no question via raw_input() and return their answer.
 
     "question" is a string that is presented to the user.
@@ -75,25 +75,30 @@ def query_yes_no(question, default="yes"):
         else:
             sys.stdout.write("Please respond with 'yes' or 'no' " "(or 'y' or 'n').\n")
 
-def get_path_depth(path: str):
+
+def get_path_depth(path: str) -> int:
     return len(path.strip(os.path.sep).split(os.path.sep))
+
 
 def get_file_ext(path: str) -> str:
     _, ext = os.path.splitext(path)
     return ext.strip(".")
 
+
 def is_file_type_media(path: str) -> bool:
     ext = get_file_ext(path)
     return ext in EXTS_MEDIA
 
-def sizeof_fmt(num, suffix="B"):
+
+def sizeof_fmt(num, suffix="B") -> None:
     for unit in ("", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"):
         if abs(num) < 1024.0:
             return f"{num:3.1f} {unit}{suffix}"
         num /= 1024.0
     return f"{num:.1f} Yi{suffix}"
 
-def process_album_dir(album_path: str) -> List[str]:
+
+def process_album_dir(album_path: str, min_year: str, max_year: str) -> List[str]:
     """Returns a list of absolute file paths to files which should be copied,
     including .mp3/.m4a, .lrc and .jpg (cover art) files."""
     ret = []
@@ -109,7 +114,9 @@ def process_album_dir(album_path: str) -> List[str]:
         print(e)
         sys.exit(1)
 
-    if album_year >= MIN_YEAR and album_year <= MAX_YEAR:
+    if (min_year == "any" or album_year >= int(min_year)) and (
+        max_year == "any" or album_year <= int(max_year)
+    ):
         for root, _, files in os.walk(album_path):
             for f in files:
                 ext = get_file_ext(f)
@@ -118,14 +125,15 @@ def process_album_dir(album_path: str) -> List[str]:
                     # Find media file associated with LRC file
                     basename, ext = os.path.splitext(f)
                     for ext in EXTS_MEDIA:
-                        mf = os.path.join(root, basename + '.' + ext)
+                        mf = os.path.join(root, basename + "." + ext)
                         if os.path.exists(mf):
                             ret.append(mf)
                 elif ext in EXTS_ART:
                     ret.append(os.path.join(root, f))
     return ret
 
-def copy_file(source_dir: str, dest_dir: str, source_file_abspath: str):
+
+def copy_file(source_dir: str, dest_dir: str, source_file_abspath: str) -> None:
     """Copy specified file to destination directory, preserving directory structure
     and creating destination subdirectories as needed.
 
@@ -133,8 +141,8 @@ def copy_file(source_dir: str, dest_dir: str, source_file_abspath: str):
     source_dir="D:\\Music"
     dest_dir="D:\\Playlists\\1990"
     source_file_abspath="D:\\Music\Martha and the Muffins\\Danseparc [1983]\\01 - Obedience.mp3"
-    
-    It will create the two destination subdirectories: 
+
+    It will create the two destination subdirectories:
     "D:\\Playlists\\1990\\Martha and the Muffins"
     "D:\\Playlists\\1990\\Martha and the Muffins\Danseparc [1983]"
 
@@ -156,7 +164,8 @@ def copy_file(source_dir: str, dest_dir: str, source_file_abspath: str):
     # copy file
     shutil.copy(source_file_abspath, dest_file_abspath)
 
-def walk_media_dir(media_path: str):
+
+def walk_media_dir(media_path: str, min_year: str, max_year: str) -> List[str]:
     files = []
     base_depth = get_path_depth(media_path)
     for root, dirs, _ in os.walk(media_path, topdown=False):
@@ -166,8 +175,11 @@ def walk_media_dir(media_path: str):
             # 1 = artist dir
             # 2 = album [year] dir
             if current_depth - base_depth == 2:
-                files.extend(process_album_dir(fullpath))
+                files.extend(process_album_dir(fullpath, min_year, max_year))
+    return files
 
+
+def show_copy_stats(files: List[str]) -> None:
     print("Files to be copied:")
     tot_size_bytes = 0
     media_file_count = 0
@@ -177,24 +189,45 @@ def walk_media_dir(media_path: str):
         tot_size_bytes += fstat.st_size
         if is_file_type_media(f):
             media_file_count += 1
-    print(f"Total number of files to be copied (including media/lyrics/art): {len(files)}")
+    print(
+        f"Total number of files to be copied (including media/lyrics/art): {len(files)}"
+    )
     print(f"Total number of media files to be copied: {media_file_count}")
-    print(f"Total filesize to be copied: {tot_size_bytes} bytes ({sizeof_fmt(tot_size_bytes)})")
+    print(
+        f"Total filesize to be copied: {tot_size_bytes} bytes ({sizeof_fmt(tot_size_bytes)})"
+    )
+
+
+def show_copy_proceed_menu(files: List[str], dest_folder: str) -> bool:
     if not query_yes_no("Proceed with copy?"):
-        sys.exit(0)
+        print("Copy aborted")
+        return False
     print("Proceeding with copy")
-    if os.path.exists(DEST_FOLDER):
-        if not query_yes_no("Destination folder exists, are you sure you wish to overwrite it (all contents will be lost)?"):
-            sys.exit(0)
+    if os.path.exists(dest_folder):
+        if not query_yes_no(
+            "Destination folder exists, are you sure you wish to overwrite it (all contents will be lost)?"
+        ):
+            print("Copy aborted")
+            return False
         else:
-            shutil.rmtree(DEST_FOLDER)
-            os.mkdir(DEST_FOLDER)
+            shutil.rmtree(dest_folder)
+            os.mkdir(dest_folder)
+            print("Existing folder deleted successfully. Proceeding with copy")
+    return True
+
+
+def copy_files(files: List[str], source_dir: str, dest_dir: str) -> None:
     for f in files:
-        copy_file(SOURCE_FOLDER, DEST_FOLDER, f)
+        copy_file(source_dir, dest_dir, f)
     print(f"Copied {len(files)} files")
 
-def main():
-    walk_media_dir(SOURCE_FOLDER)
 
-if __name__ == '__main__':
+def main():
+    files = walk_media_dir(SOURCE_FOLDER, MIN_YEAR, MAX_YEAR)
+    show_copy_stats(files)
+    if show_copy_proceed_menu(files, DEST_FOLDER):
+        copy_files(files, SOURCE_FOLDER, DEST_FOLDER)
+
+
+if __name__ == "__main__":
     main()
