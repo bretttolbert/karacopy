@@ -133,20 +133,19 @@ def copy_file(source_dir: str, dest_dir: str, source_file_abspath: str) -> None:
     E.g. given:
     source_dir="D:\\Music"
     dest_dir="D:\\Playlists\\1990"
-    source_file_abspath="D:\\Music\Martha and the Muffins\\Danseparc [1983]\\01 - Obedience.mp3"
+    source_file_abspath="D:\\Music\\Martha and the Muffins\\Danseparc [1983]\\01 - Obedience.mp3"
 
     It will create the two destination subdirectories:
     "D:\\Playlists\\1990\\Martha and the Muffins"
-    "D:\\Playlists\\1990\\Martha and the Muffins\Danseparc [1983]"
+    "D:\\Playlists\\1990\\Martha and the Muffins\\Danseparc [1983]"
 
     And copy the file to:
     "D:\\Playlists\\1990\\Martha and the Muffins\\Danseparc [1983]\\01 - Obedience.mp3"
-
     """
     # First we need to compute the relative path by stripping the source_dir
     if not source_file_abspath.startswith(source_dir):
         raise Exception("Source file path doesn't match source directory")
-    rel_file_path = source_file_abspath.strip(source_dir).strip(os.path.sep)
+    rel_file_path = source_file_abspath.replace(source_dir, '').strip(os.path.sep)
     # rel_path_path is now like "Martha and the Muffins\\Danseparc [1983]\\01 - Obedience.mp3"
     dest_file_abspath = os.path.join(dest_dir, rel_file_path)
     # dest_file_abspath is now like "D:\\Playlists\\1990\\Martha and the Muffins\\Danseparc [1983]\\01 - Obedience.mp3"
